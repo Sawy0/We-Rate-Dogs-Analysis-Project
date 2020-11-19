@@ -1,0 +1,1 @@
+Print ("random names")
