@@ -1,0 +1,422 @@
+import pandas as pd
+import json
+import requests
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().run_line_magic('matplotlib', 'notebook')
+
+
+#Listing the download links to all the requried documents for the project.
+links = ['https://video.udacity-data.com/topher/2018/November/5bf60fbf_twitter-archive-enhanced/twitter-archive-enhanced.csv',
+        'https://video.udacity-data.com/topher/2018/November/5bf60fda_tweet-json/tweet-json',
+        'https://video.udacity-data.com/topher/2018/November/5bf60fe7_image-predictions/image-predictions.tsv',
+        'https://video.udacity-data.com/topher/2018/November/5bfc35b7_twitter-api/twitter-api.rtf',
+        'https://video.udacity-data.com/topher/2018/November/5be5fb4c_twitter-api/twitter-api.py']
+
+
+#Getting the requests from the above links and writing them to the workspace directory.
+for link in links:
+    response = requests.get(link)
+    with open(os.path.join('/home/workspace',link.split("/")[-1]), mode = 'wb') as file:
+        file.write(response.content)
+
+#Loading dataframes
+archive_df = pd.read_csv("twitter-archive-enhanced.csv")
+image_predictions_df = pd.read_csv("image-predictions.tsv", sep='\t')
+
+
+# %load 'twitter-api.py'
+import tweepy
+from tweepy import OAuthHandler
+import json
+from timeit import default_timer as timer
+
+# Query Twitter API for each tweet in the Twitter archive and save JSON in a text file
+# These are hidden to comply with Twitter's API terms and conditions
+consumer_key = 'Hidden'
+consumer_secret = 'Hidden'
+access_token = 'Hidden'
+access_secret = 'Hidden'
+
+auth = OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_secret)
+
+api = tweepy.API(auth, wait_on_rate_limit=True)
+
+# NOTE TO STUDENT WITH MOBILE VERIFICATION ISSUES:
+# df_1 is a DataFrame with the twitter_archive_enhanced.csv file. You may have to
+# change line 17 to match the name of your DataFrame with twitter_archive_enhanced.csv
+# NOTE TO REVIEWER: this student had mobile verification issues so the following
+# Twitter API code was sent to this student from a Udacity instructor
+# Tweet IDs for which to gather additional data via Twitter's API
+tweet_ids = archive_df.tweet_id.values
+len(tweet_ids)
+
+# Query Twitter's API for JSON data for each tweet ID in the Twitter archive
+count = 0
+fails_dict = {}
+start = timer()
+# Save each tweet's returned JSON as a new line in a .txt file
+with open('tweet_json.txt', 'w') as outfile:
+    # This loop will likely take 20-30 minutes to run because of Twitter's rate limit
+    for tweet_id in tweet_ids:
+        count += 1
+        print(str(count) + ": " + str(tweet_id))
+        try:
+            tweet = api.get_status(tweet_id, tweet_mode='extended')
+            print("Success")
+            json.dump(tweet._json, outfile)
+            outfile.write('\n')
+        except tweepy.TweepError as e:
+            print("Fail")
+            fails_dict[tweet_id] = e
+            pass
+end = timer()
+print(end - start)
+print(fails_dict)
+
+
+#Making a DataFrame from the tweets gathered in the json file.
+df_list = []
+
+with open('tweet_json.txt', 'r') as file:
+    for line in file:
+        tweet = json.loads(line)
+        tweet_id = tweet['id']
+        retweet_count = tweet['retweet_count']
+        fav_count = tweet['favorite_count']
+        df_list.append({'tweet_id':tweet_id,
+                       'retweet_count': retweet_count,
+                       'favorite_count': fav_count})
+        
+api_df_now = pd.DataFrame(df_list)
+
+
+# # Assessing the data programmatically
+
+archive_df.head()
+
+
+archive_df.info()
+
+
+archive_df.shape
+
+
+list(archive_df.columns)
+
+
+api_df_now.info()
+
+
+api_df_now.shape
+
+
+image_predictions_df.head()
+
+
+image_predictions_df.info()
+
+
+list(image_predictions_df.columns)
+
+
+# # --------------------------------------------------------------------------------------------------------
+# # Quality Issues 
+# 
+# ## archive_df
+# 
+# ### - Converting timestamp column to date dtype
+# ### - Converting tweet id from int to string
+# ### - Removing the retweets and replies
+# ### - Remove the unneeded columns (in_reply_to_status_id, in_reply_to_user_id, retweeted_status_id,	retweeted_status_user_id,	retweeted_status_timestamp) 
+# ### - Removing href tags from Source column 
+# ### - Removing missing values for expanded_urls 
+# ### - Correcting the None values in stage
+# ### - Replace possible wrong values and None with NaNs in name column
+# ### - Correcting decimal numerators and column dtype
+# ## api_df_now
+# ### - Converting tweet_ids to str 
+# ## image_predictions_df
+# ### - Remove retweets from the df which was removed originally from archive_df
+# ### - convert tweet ids to str
+# ### - Predictions with False result in all predictions should be dropped.
+# # --------------------------------------------------------------------------------------------------------
+
+# # Tidiness Issues
+# 
+# ## archive_df
+# ### - Dog stage should be one column
+# 
+# ## api_now_df
+# 
+# ### - api_df should be a part of archived_df
+# 
+# ## image_predictions_df
+# ### - image_predictions_df should be a part of archive_df
+# # --------------------------------------------------------------------------------------------------------
+
+# # Cleaning Quality Issues
+
+# # archive_df
+
+
+#Creating a copy of the df
+archive_clean_df = archive_df.copy()
+
+
+# ## Define
+# ### Converting timestamp column to date dtype
+# ## Code
+
+
+#Convering the column with to_datetime method in pandas.
+archive_clean_df.timestamp = pd.to_datetime(archive_df.timestamp)
+
+
+# ## Define
+# ### Removing missing values for expanded_urls
+# ## Code
+
+
+# creating a list of tweet_ids with images "tweets_with_image" and confirming its length
+tweets_with_image = list(image_predictions_df.tweet_id.unique())
+
+# confirming that all the tweets with images exist in the archive dataset
+len(tweets_with_image) == archive_clean_df.tweet_id.isin(tweets_with_image).sum()
+
+# Cleaning in action
+archive_clean_df = archive_clean_df[archive_clean_df.tweet_id.isin(tweets_with_image)]
+
+
+# ## Define
+# ### Convert tweet_id to string
+# ## Code
+
+
+#Converting the tweet id column dtype to str as there isn't mathematical operations will be done on them.
+archive_clean_df.tweet_id = archive_clean_df.tweet_id.astype(str)
+
+
+# ## Define
+# ### Removing the retweets and replies
+
+# ## Code
+
+
+#Removing the retweets by excluding the notnull values. tilde (~) in the mask means not to include the following.
+archive_clean_df = archive_clean_df[~((archive_clean_df['retweeted_status_id'].notnull()))]
+#Removing the replies by excluding the notnull values. tilde (~) in the mask means not to include the following.
+archive_clean_df = archive_clean_df[~((archive_clean_df['in_reply_to_status_id'].notnull()))]
+
+
+# ## Define
+# ### Removing Retweets and replies columns
+
+
+#Removing the retweets and replies columns with drop method in pandas.
+archive_clean_df = archive_clean_df.drop(['in_reply_to_status_id', 'in_reply_to_user_id', 'retweeted_status_id', 
+                                            'retweeted_status_user_id','retweeted_status_timestamp',], axis=1)
+
+
+# ## Define
+# ### Remove href tags from source column
+# ## Code
+
+
+#importing BeatifulSoup library
+from bs4 import BeautifulSoup as bs
+source_list=[]
+#Extracting all the values between the href tags and appending them to the list, source_list.
+for row in archive_clean_df.source:
+    source_href = bs(row, 'lxml')
+    source_clean = source_href.find('a').contents[0]
+    source_list.append(source_clean)
+#Redifining the column source by adding the extracted values from href tags.
+archive_clean_df['source'] = source_list
+
+
+# ## Define
+# ### Replace None values with empty strings in dog stages name
+# ## Code
+
+
+#Replacing None values in dog stage columns with empty string with replace method.
+archive_clean_df.iloc[:,-4:] = archive_clean_df.iloc[:, -4:].replace('None', '')
+
+
+# ## Define
+# ### Fixing Name column
+# ## Code
+
+
+#Replacing the incorrect names with NaN values
+archive_clean_df.loc[archive_clean_df.name == archive_clean_df.name.str.lower(), 'name'] = np.nan
+
+
+# ## Define
+# ### Correcting decimal numerators and column dtype
+# ## Code
+
+
+#Converting the nonnull values in the rating_numerator column to floats by masking, indexing, and astype
+archive_clean_df[archive_clean_df['rating_numerator'].notnull()]['rating_numerator'] = archive_clean_df[archive_clean_df['rating_numerator'].notnull()]['rating_numerator'].astype(float)
+
+
+
+#Correcting the decimal ratings by indexing
+indexing = archive_clean_df[archive_clean_df.text.str.contains(r"(\d+\.\d*\/\d+)")][['text', 'rating_numerator']].index
+archive_clean_df.loc[indexing[0], 'rating_numerator'] = 13.5
+archive_clean_df.loc[indexing[1], 'rating_numerator'] = 9.75
+archive_clean_df.loc[indexing[2], 'rating_numerator'] = 11.27
+archive_clean_df.loc[indexing[3], 'rating_numerator'] = 11.26
+#Incorrectly extracted rating as the regex ran over a number that was before the rating.
+archive_clean_df.loc[2335, 'rating_numerator'] = 9
+
+
+# # api_now_df
+# 
+
+
+api_clean = api_df_now.copy()
+
+
+# ## Define
+# ### Convert tweets_ids to str
+# ## Code
+
+
+#Converting the tweet id column dtype to str as there isn't mathematical operations will be done on them.
+api_clean.tweet_id = api_clean.tweet_id.astype(str)
+
+
+# # image_prediction_df
+
+
+image_clean = image_predictions_df.copy()
+
+
+# ## Define
+# ### Convert tweet ids to str
+# ## Code
+
+
+image_clean.tweet_id = image_clean.tweet_id.astype(str)
+
+
+# ## Define
+# ### Drop retweets
+# ## Code
+
+
+
+# Dropping the retweets and replies ids from the image prediction dataframe
+image_clean = image_clean[~np.logical_not(image_clean.tweet_id.isin(list(archive_clean_df.tweet_id)))]
+
+
+# ## Define
+# ### Drop the values with all False predictions
+# ## Code
+
+
+#Querying the predictions with False probabilities for each prediction.
+df_false = image_clean.query('p1_dog == False & p2_dog == False & p3_dog == False')
+#Dropping the mask df_false from the image predictions file.
+image_clean.drop(df_false.index, axis=0, inplace=True)
+
+
+# # Cleaning Tidiness Issues
+
+# # archive_df
+
+# ## Define
+# ### Fix dog stage name as it should only have one column
+# ## Code
+
+
+#Appending the dog stages in a one dog stage column.
+archive_clean_df['dog_stage'] = archive_clean_df.iloc[:,-4] + archive_clean_df.iloc[:,-3] + archive_clean_df.iloc[:,-2] + archive_clean_df.iloc[:,-1]
+
+
+#Extracting the stage names from the strings concatenated.
+archive_clean_df['dog_stage'] = archive_clean_df.dog_stage.str.extract(r'([\D]+)')
+#replacing the stage names that has more than one name with the work "multiple"
+archive_clean_df.replace({'dog_stage':{'doggopupper': 'multiple', 'doggopuppo':'multiple', 'doggofloofer':'multiple'}}, inplace=True)
+
+
+#Dropping the columns we appended.
+archive_clean_df.drop(columns=['floofer','puppo','pupper','doggo'], axis=1, inplace=True)
+
+
+# # api_now_df
+
+# ## Define
+# ### Merging the data set with archive_clean_df as having two sets seems inconsistent
+# ## Code
+
+#Merging the 2 datasets using merge method
+archive_clean_df = archive_clean_df.merge(api_clean, how='left', on = 'tweet_id')
+
+
+# # image_predicitions_df
+# ## Define
+# ### df should be a part of archive_df
+# ## Code
+
+
+
+#Merging the predictions file with the master data set and excluding the photo and number of photos columns
+#as the master set has the urls for the photos
+archive_clean_df = archive_clean_df.merge(image_clean[['tweet_id','p1','p1_conf','p1_dog','p2','p2_conf','p2_dog','p3','p3_conf','p3_dog']],
+                                            how = 'left', on='tweet_id')
+
+
+#resetting the index to fix all the indexes differences that were made by adding or removing columns
+archive_clean_df.reset_index(drop=True, inplace=True)
+
+
+
+#Saving the clean dataframe to a master dataset
+archive_clean_df.to_csv('twitter_archive_master.csv', index=False)
+
+
+# # Visualizing the insights from the dataset
+
+
+#Loading the dataframes for visualization
+archive_clean = pd.read_csv('twitter_archive_master.csv')
+
+
+
+#Converting the timestamp column to datetime dtype again
+archive_clean.timestamp = pd.to_datetime(archive_clean.timestamp)
+#Extracting a column only for analysis that includes year and month only
+archive_clean['yearmonth'] = archive_clean.timestamp.dt.to_period('M')
+
+
+
+#Grouping by the time and getting the mean of the favorite count and retweet count to return a dataframe with the average
+#of those by time
+interactions_by_time = archive_clean.groupby('yearmonth')[['favorite_count', 'retweet_count']].mean()
+
+
+#Plotting the numbers to a line chart
+interactions_by_time.plot.line(y= ['favorite_count', 'retweet_count'], figsize=(8,8))
+plt.xlabel('Time', fontsize=15)
+plt.ylabel('Retweets Counts Average', fontsize=13)
+plt.show();
+plt.savefig('Interactions vs time.png');
+
+
+#Getting the counts of the dog stages used and sorting them in ascended order.
+stage_count = archive_clean.dog_stage.value_counts(ascending=True)
+
+
+#Plotting the count of the dog stage used.
+stage_count.plot.bar(figsize=(8,11))
+plt.xlabel('Dog Stage', fontsize=15)
+plt.ylabel('Number Of Stages Used', fontsize=13)
+plt.show();
+plt.savefig('Dog Stage.png');
