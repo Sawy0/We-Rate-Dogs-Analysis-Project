@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 ```
 
 
+###Listing the download links to all the requried documents for the project.
 ```python
-#Listing the download links to all the requried documents for the project.
 links = ['https://video.udacity-data.com/topher/2018/November/5bf60fbf_twitter-archive-enhanced/twitter-archive-enhanced.csv',
         'https://video.udacity-data.com/topher/2018/November/5bf60fda_tweet-json/tweet-json',
         'https://video.udacity-data.com/topher/2018/November/5bf60fe7_image-predictions/image-predictions.tsv',
@@ -31,21 +31,21 @@ links = ['https://video.udacity-data.com/topher/2018/November/5bf60fbf_twitter-a
 ```
 
 
+###Getting the requests from the above links and writing them to the workspace directory.
 ```python
-#Getting the requests from the above links and writing them to the workspace directory.
 for link in links:
     response = requests.get(link)
     with open(os.path.join('/home/workspace',link.split("/")[-1]), mode = 'wb') as file:
         file.write(response.content)
 ```
 
-
+###Loading DataFrames
 ```python
 archive_df = pd.read_csv("twitter-archive-enhanced.csv")
 image_predictions_df = pd.read_csv("image-predictions.tsv", sep='\t')
 ```
 
-
+###Initializing Tweepy
 ```python
 # %load 'twitter-api.py'
 import tweepy
@@ -99,9 +99,8 @@ print(fails_dict)
 
 ```
 
-
+###Making a DataFrame from the tweets gathered in the json file.
 ```python
-#Making a DataFrame from the tweets gathered in the json file.
 df_list = []
 
 with open('tweet_json.txt', 'r') as file:
@@ -891,6 +890,4 @@ plt.savefig('Dog Stage.png');
 
 
 
-```python
-
-```
+### It wasn't so easy to be done but it definitely was so fruitful experience. I hope you enjoyed going through this and enjoyed the insights.
