@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 ```
 
 
-###Listing the download links to all the requried documents for the project.
+### Listing the download links to all the requried documents for the project.
 ```python
 links = ['https://video.udacity-data.com/topher/2018/November/5bf60fbf_twitter-archive-enhanced/twitter-archive-enhanced.csv',
         'https://video.udacity-data.com/topher/2018/November/5bf60fda_tweet-json/tweet-json',
@@ -31,7 +31,7 @@ links = ['https://video.udacity-data.com/topher/2018/November/5bf60fbf_twitter-a
 ```
 
 
-###Getting the requests from the above links and writing them to the workspace directory.
+### Getting the requests from the above links and writing them to the workspace directory.
 ```python
 for link in links:
     response = requests.get(link)
@@ -39,13 +39,13 @@ for link in links:
         file.write(response.content)
 ```
 
-###Loading DataFrames
+### Loading DataFrames
 ```python
 archive_df = pd.read_csv("twitter-archive-enhanced.csv")
 image_predictions_df = pd.read_csv("image-predictions.tsv", sep='\t')
 ```
 
-###Initializing Tweepy
+### Initializing Tweepy
 ```python
 # %load 'twitter-api.py'
 import tweepy
@@ -99,7 +99,7 @@ print(fails_dict)
 
 ```
 
-###Making a DataFrame from the tweets gathered in the json file.
+### Making a DataFrame from the tweets gathered in the json file.
 ```python
 df_list = []
 
