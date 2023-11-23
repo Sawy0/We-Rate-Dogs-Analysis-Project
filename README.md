@@ -1,4 +1,4 @@
-# We_Rate_Dogs_Analysis_Project
+# We Rate Dogs Analysis Project
 ### I gathered 2.3K tweets from Twitter posted by a page called WeRateDogs using Tweepy. This page rates people's dogs in a funny way and it really publish a hilarious content.
 ### That was originally a project for a Udacity NAND in the Data Analysis track and they helped with providing a TSV file which was an outcome of a neural network to help identifying the dogs' breeds by photo.
 ### I cleaned the data I gathered and the data they provided and ran an analysis over them and came up with some pretty cool insights.
